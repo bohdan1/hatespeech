@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 #!/usr/bin/python
 
 from apiclient.discovery import build
@@ -23,10 +23,10 @@ ids = []
 search_step = 50
 
 # Amount of videos to crawl
-amount = 350
+amount = 300
 
 # Search phrase
-keyword = "Євромайдан"
+keyword = "Euromaidan"
 
 
 def youtube_search(pageToken):
