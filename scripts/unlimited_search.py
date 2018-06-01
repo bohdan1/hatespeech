@@ -54,7 +54,7 @@ def youtube_search(pageToken):
   return search_response.get("nextPageToken", [])
 
 def write_results():
-    with codecs.open('vidoes.txt', 'w', "utf-8") as outfile:
+    with codecs.open('videos.txt', 'w', "utf-8") as outfile:
         for name in videos:
             outfile.write(name + u"\n")
     with open('ids.txt', 'w') as outfile:
