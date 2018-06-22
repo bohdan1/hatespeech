@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf8 -*-
 #!/usr/bin/env python
 
 from __future__ import print_function
@@ -12,6 +12,7 @@ import argparse
 import lxml.html
 import csv
 import unicodedata
+import codecs
 
 from lxml.cssselect import CSSSelector
 
@@ -36,14 +37,13 @@ def extract_comments(html):
     author_sel = CSSSelector('.user-name')
 
     for item in item_sel(tree):
-        with open('comments.csv', 'a') as a:
+        with codecs.open('comments.csv', 'a', "utf-8") as a:
             writer = csv.writer(a)
             writer.writerow([item.get('data-cid'),
                              CUREENT_VIDEO,
                              time_sel(item)[0].text_content().strip(),
-                             author_sel(item)[0].text_content().encode("utf-8"),
-                             text_sel(item)[0].text_content().encode("utf-8")])
-        #print(text_sel(item)[0].text_content().encode("utf-8"))
+                             author_sel(item)[0].text_content(),
+                             text_sel(item)[0].text_content()])
         yield {'cid': item.get('data-cid')}
 
 
@@ -73,67 +73,69 @@ def download_comments(youtube_id, sleep=1):
     reply_cids = extract_reply_cids(html)
 
     ret_cids = []
-    for comment in extract_comments(html):
-        ret_cids.append(comment['cid'])
-        yield comment
-
-    page_token = find_value(html, 'data-token')
-    session_token = find_value(html, 'XSRF_TOKEN', 4)
-
-    first_iteration = True
-
-    # Get remaining comments (the same as pressing the 'Show more' button)
-    while page_token:
-        data = {'video_id': youtube_id,
-                'session_token': session_token}
-
-        params = {'action_load_comments': 1,
-                  'order_by_time': True,
-                  'filter': youtube_id}
-
-        if first_iteration:
-            params['order_menu'] = True
-        else:
-            data['page_token'] = page_token
-
-        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL, params, data)
-        if not response:
-            break
-
-        page_token, html = response
-
-        reply_cids += extract_reply_cids(html)
-        for comment in extract_comments(html):
-            if comment['cid'] not in ret_cids:
-                ret_cids.append(comment['cid'])
-                yield comment
-
-        first_iteration = False
-        time.sleep(sleep)
-
-    # Get replies (the same as pressing the 'View all X replies' link)
-    for cid in reply_cids:
-        data = {'comment_id': cid,
-                'video_id': youtube_id,
-                'can_reply': 1,
-                'session_token': session_token}
-
-        params = {'action_load_replies': 1,
-                  'order_by_time': True,
-                  'filter': youtube_id,
-                  'tab': 'inbox'}
-
-        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL, params, data)
-        if not response:
-            break
-
-        _, html = response
+    if 'Comments are disabled for this video.' not in html:
 
         for comment in extract_comments(html):
-            if comment['cid'] not in ret_cids:
-                ret_cids.append(comment['cid'])
-                yield comment
-        time.sleep(sleep)
+            ret_cids.append(comment['cid'])
+            yield comment
+
+        page_token = find_value(html, 'data-token')
+        session_token = find_value(html, 'XSRF_TOKEN', 4)
+
+        first_iteration = True
+
+        # Get remaining comments (the same as pressing the 'Show more' button)
+        while page_token:
+            data = {'video_id': youtube_id,
+                    'session_token': session_token}
+
+            params = {'action_load_comments': 1,
+                      'order_by_time': True,
+                      'filter': youtube_id}
+
+            if first_iteration:
+                params['order_menu'] = True
+            else:
+                data['page_token'] = page_token
+
+            response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL, params, data)
+            if not response:
+                break
+
+            page_token, html = response
+
+            reply_cids += extract_reply_cids(html)
+            for comment in extract_comments(html):
+                if comment['cid'] not in ret_cids:
+                    ret_cids.append(comment['cid'])
+                    yield comment
+
+            first_iteration = False
+            time.sleep(sleep)
+
+        # Get replies (the same as pressing the 'View all X replies' link)
+        for cid in reply_cids:
+            data = {'comment_id': cid,
+                    'video_id': youtube_id,
+                    'can_reply': 1,
+                    'session_token': session_token}
+
+            params = {'action_load_replies': 1,
+                      'order_by_time': True,
+                      'filter': youtube_id,
+                      'tab': 'inbox'}
+
+            response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL, params, data)
+            if not response:
+                break
+
+            _, html = response
+
+            for comment in extract_comments(html):
+                if comment['cid'] not in ret_cids:
+                    ret_cids.append(comment['cid'])
+                    yield comment
+            time.sleep(sleep)
 
 
 def main():

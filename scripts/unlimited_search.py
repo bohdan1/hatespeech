@@ -23,10 +23,10 @@ ids = []
 search_step = 50
 
 # Amount of videos to crawl
-amount = 300
+amount = 500
 
 # Search phrase
-keyword = "Euromaidan"
+keyword = "Євромайдан"
 
 
 def youtube_search(pageToken):
@@ -63,7 +63,7 @@ def write_results():
 
 if __name__ == "__main__":
     pageToken = ''
-    for i in range(amount/search_step):
+    for i in range(int(amount/search_step)):
         pageToken = youtube_search(pageToken)
     write_results()
 
