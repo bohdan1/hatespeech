@@ -12,7 +12,9 @@ import argparse
 import lxml.html
 import csv
 import unicodedata
+
 import codecs
+
 
 from lxml.cssselect import CSSSelector
 
@@ -20,6 +22,8 @@ YOUTUBE_COMMENTS_URL = 'https://www.youtube.com/all_comments?v={youtube_id}'
 YOUTUBE_COMMENTS_AJAX_URL = 'https://www.youtube.com/comment_ajax'
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36'
+
+COMMENTS_OUTPUT_PATH = 'comments.csv'
 
 
 CUREENT_VIDEO = ''
@@ -37,13 +41,16 @@ def extract_comments(html):
     author_sel = CSSSelector('.user-name')
 
     for item in item_sel(tree):
-        with codecs.open('comments.csv', 'a', "utf-8") as a:
+        with open(COMMENTS_OUTPUT_PATH, 'a') as a:
             writer = csv.writer(a)
             writer.writerow([item.get('data-cid'),
                              CUREENT_VIDEO,
                              time_sel(item)[0].text_content().strip(),
                              author_sel(item)[0].text_content(),
+
                              text_sel(item)[0].text_content()])
+
+        #print(str(text_sel(item)[0].text_content()))
         yield {'cid': item.get('data-cid')}
 
 
@@ -142,6 +149,9 @@ def main():
     with open('ids.txt') as f:
         ids = f.readlines()
     ids = [x.strip() for x in ids]
+    if not os.path.exists(COMMENTS_OUTPUT_PATH):
+        with open(COMMENTS_OUTPUT_PATH, 'w') as f:
+            f.write('id,video_id,time,author,text,lang\n')
     for youtube_id in ids:
         print('Downloading Youtube comments for video:', youtube_id)
         count = 0
